@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS job_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC NOT NULL CHECK (unit_price >= 0),
-    line_total NUMERIC NOT NULL CHECK (line_total >= 0),
+    line_total NUMERIC NOT NULL CHECK (line_total >= 0) CHECK (line_total = quantity * unit_price),
     specifications TEXT,
     FOREIGN KEY (job_id) REFERENCES print_jobs(job_id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES print_products(product_id)
@@ -58,6 +58,55 @@ CREATE TABLE IF NOT EXISTS payments (
     reference_note TEXT,
     FOREIGN KEY (job_id) REFERENCES print_jobs(job_id) ON DELETE CASCADE
 );
+
+CREATE TRIGGER IF NOT EXISTS trg_job_items_after_insert
+AFTER INSERT ON job_items
+BEGIN
+    UPDATE print_jobs
+    SET total_amount = (
+        SELECT COALESCE(SUM(line_total), 0)
+        FROM job_items
+        WHERE job_id = NEW.job_id
+    ),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE job_id = NEW.job_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_job_items_after_update
+AFTER UPDATE ON job_items
+BEGIN
+    UPDATE print_jobs
+    SET total_amount = (
+        SELECT COALESCE(SUM(line_total), 0)
+        FROM job_items
+        WHERE job_id = NEW.job_id
+    ),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE job_id = NEW.job_id;
+
+    UPDATE print_jobs
+    SET total_amount = (
+        SELECT COALESCE(SUM(line_total), 0)
+        FROM job_items
+        WHERE job_id = OLD.job_id
+    ),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE job_id = OLD.job_id
+      AND OLD.job_id <> NEW.job_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_job_items_after_delete
+AFTER DELETE ON job_items
+BEGIN
+    UPDATE print_jobs
+    SET total_amount = (
+        SELECT COALESCE(SUM(line_total), 0)
+        FROM job_items
+        WHERE job_id = OLD.job_id
+    ),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE job_id = OLD.job_id;
+END;
 
 CREATE INDEX IF NOT EXISTS idx_print_jobs_customer_id ON print_jobs(customer_id);
 CREATE INDEX IF NOT EXISTS idx_print_jobs_status ON print_jobs(job_status);

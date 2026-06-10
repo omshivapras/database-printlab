@@ -17,6 +17,10 @@ The schema includes:
 - `job_items` - line items under each print job
 - `payments` - payment records per job
 
+`schema.sql` also adds triggers to keep:
+- `job_items.line_total` consistent with `quantity * unit_price`
+- `print_jobs.total_amount` synced with the sum of job item totals
+
 ## Create the database (SQLite)
 
 ```bash
