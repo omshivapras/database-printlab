@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS job_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC NOT NULL CHECK (unit_price >= 0),
-    line_total NUMERIC NOT NULL CHECK (line_total >= 0) CHECK (line_total = quantity * unit_price),
+    line_total NUMERIC NOT NULL CHECK (line_total >= 0),
     specifications TEXT,
     FOREIGN KEY (job_id) REFERENCES print_jobs(job_id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES print_products(product_id)
