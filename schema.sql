@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS payments (
     FOREIGN KEY (job_id) REFERENCES print_jobs(job_id) ON DELETE CASCADE
 );
 
+-- Recalculate a job total whenever a new item is added.
 CREATE TRIGGER IF NOT EXISTS trg_job_items_after_insert
 AFTER INSERT ON job_items
 BEGIN
@@ -72,6 +73,7 @@ BEGIN
     WHERE job_id = NEW.job_id;
 END;
 
+-- Business rule: an item cannot be reassigned to a different job once created.
 CREATE TRIGGER IF NOT EXISTS trg_job_items_prevent_job_move
 BEFORE UPDATE OF job_id ON job_items
 WHEN NEW.job_id <> OLD.job_id
@@ -79,6 +81,7 @@ BEGIN
     SELECT RAISE(ABORT, 'Changing job_id for an existing job item is not allowed');
 END;
 
+-- Recalculate a job total whenever one of its items is updated.
 CREATE TRIGGER IF NOT EXISTS trg_job_items_after_update
 AFTER UPDATE ON job_items
 BEGIN
@@ -90,17 +93,9 @@ BEGIN
     ),
     updated_at = CURRENT_TIMESTAMP
     WHERE job_id = NEW.job_id;
-    UPDATE print_jobs
-    SET total_amount = (
-        SELECT COALESCE(SUM(line_total), 0)
-        FROM job_items
-        WHERE job_id = OLD.job_id
-    ),
-    updated_at = CURRENT_TIMESTAMP
-    WHERE job_id = OLD.job_id
-      AND OLD.job_id <> NEW.job_id;
 END;
 
+-- Recalculate a job total whenever one of its items is removed.
 CREATE TRIGGER IF NOT EXISTS trg_job_items_after_delete
 AFTER DELETE ON job_items
 BEGIN
