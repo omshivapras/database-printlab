@@ -90,7 +90,15 @@ BEGIN
     ),
     updated_at = CURRENT_TIMESTAMP
     WHERE job_id = NEW.job_id;
-
+    UPDATE print_jobs
+    SET total_amount = (
+        SELECT COALESCE(SUM(line_total), 0)
+        FROM job_items
+        WHERE job_id = OLD.job_id
+    ),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE job_id = OLD.job_id
+      AND OLD.job_id <> NEW.job_id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_job_items_after_delete
