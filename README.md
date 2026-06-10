@@ -25,3 +25,5 @@ The schema includes:
 ```bash
 sqlite3 printlab.db < schema.sql
 ```
+
+The script runs inside one explicit transaction so schema creation is atomic.
